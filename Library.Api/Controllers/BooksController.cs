@@ -1,4 +1,5 @@
 ﻿using Library.Api.Dto;
+using Library.Api.Helpers;
 using Library.Api.Models;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,6 +9,11 @@ namespace Library.Api.Controllers;
 [Route("api/[controller]")]
 public class BooksController: ControllerBase
 {
+    private readonly UserHelpers _userHelpers;
+    public BooksController(IHttpClientFactory clientFactory)
+    {
+        _userHelpers = new UserHelpers(clientFactory);
+    }
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
@@ -26,6 +32,10 @@ public class BooksController: ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create(BookDto dto)
     {
+        var name = Request.Headers["user-name"].FirstOrDefault();
+        var isUserLogin = await _userHelpers.IsUserLogin(name ?? "string", "someRandomJwt");
+        if (!isUserLogin) return BadRequest("You are not logged in");
+
         var lastbook = Seeds.Seeds.Books.LastOrDefault();
 
         Book newBook = new Book
@@ -43,6 +53,10 @@ public class BooksController: ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
+        var name = Request.Headers["user-name"].FirstOrDefault();
+        var isUserLogin = await _userHelpers.IsUserLogin("string", "someRandomJwt");
+        if (!isUserLogin) return BadRequest("You are not logged in");
+        
         var existBook = Seeds.Seeds.Books.FirstOrDefault(x => x.Id == id);
         if (existBook is null) return NotFound();
 
